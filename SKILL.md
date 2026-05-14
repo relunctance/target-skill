@@ -299,6 +299,14 @@ _目标已锁定。每次回复前将对齐目标。_
 
 ---
 
+---
+
+### 目标持久化（已迁移）
+
+状态文件位置、使用方式、对齐时机 → 详见下方「目标持久化（统一）」章节。
+
+---
+
 ## 每次回复前的对齐检查
 
 ```
@@ -363,65 +371,54 @@ _目标追踪结束。_
 
 ---
 
-## 目标持久化
+## 目标持久化（统一）
 
-### 状态文件
+### 状态文件位置
 
-每次目标变更时，将状态写入 `.target-state.json`（加入 `.gitignore`）：
+**统一存储在**: `~/.hermes/profiles/baijie/.target-state.json`
+
+每次目标变更（用户确认后）自动写入此文件。
+
+### 读取时机
+
+**每次新 session 开始时**，优先检查 `~/.hermes/profiles/baijie/.target-state.json`：
+- 有目标 → 恢复状态，向用户汇报当前进度
+- 无目标 → 询问用户是否有目标要继续
+
+**用户每次说"你的目标"时** → 读取状态文件，汇报当前目标 + 进度
+
+### 状态文件格式
 
 ```json
 {
   "goal": "{大目标描述}",
   "phase": "进行中 | 已完成 | 已放弃",
   "createdAt": "YYYY-MM-DD HH:mm",
-  "milestones": [
-    {
-      "id": 1,
-      "title": "{里程碑名称}",
-      "status": "done | active | pending",
-      "completedAt": null
-    }
-  ],
-  "problems": [
-    {
-      "id": 1,
-      "description": "{问题描述}",
-      "priority": "P0 | P1 | P2",
-      "status": "done | active | pending"
-    }
-  ],
-  "subGoals": [
-    {
-      "id": 1,
-      "title": "{子目标名称}",
-      "description": "{子目标描述}",
-      "priority": "P0 | P1 | P2",
-      "status": "pending | active | done",
-      "createdAt": "YYYY-MM-DD HH:mm",
-      "completedAt": null
-    }
-  ],
-  "changeLog": [
-    {
-      "time": "YYYY-MM-DD HH:mm",
-      "action": "设定目标 | 调整目标 | 完成里程碑 | 添加问题 | 添加子目标 | 完成子目标",
-      "detail": "{具体描述}"
-    }
-  ]
+  "lastUpdated": "YYYY-MM-DD HH:mm",
+  "progress": "{当前进度描述}",
+  "milestones": [...],
+  "problems": [...],
+  "subGoals": [...],
+  "changeLog": [...]
 }
 ```
 
-### Session 恢复
+### Session 结束对齐（每次任务完成时必须执行）
 
-每次开启目标追踪前，先检查 `.target-state.json`：
+**每次完成一个有意义的任务后**，自动执行：
 
-```bash
-if [ -f "$PROJECT_PATH/.target-state.json" ]; then
-  GOAL=$(python3 -c "import json; print(json.load(open('$PROJECT_PATH/.target-state.json'))['goal'])")
-  PHASE=$(python3 -c "import json; print(json.load(open('$PROJECT_PATH/.target-state.json'))['phase'])")
-  echo "📌 检测到进行中的目标: $GOAL (状态: $PHASE)"
-  # 继续追踪
-fi
+```markdown
+## 🎯 目标对齐
+
+**当前目标**: {goal}
+**进度**: {progress}
+**已完成**: {done items}
+**下一步**: {next step}
+
+请确认：
+1. **继续** — 推进下一个子目标
+2. **调整** — 修改目标或优先级
+3. **暂停** — 暂时搁置
 ```
 
 ---
@@ -459,7 +456,7 @@ fi
 1. 解析并确认目标
 2. 拆解问题 + 优先级
 3. 将以上内容以确认格式呈现给用户
-4. **等用户确认后**才写入 `.target-state.json` 和同步到 `docs/TODO.md`
+4. **等用户确认后**才写入 `~/.hermes/profiles/baijie/.target-state.json` 和同步到 `docs/TODO.md`
 5. 锁定目标，开始追踪
 6. 每次回复前对齐
 
@@ -469,11 +466,11 @@ fi
 - 发现偏移立即报告
 - 遇到歧义立即确认
 - 每完成一个里程碑**必须先询问用户确认**后才能更新状态
-- **所有状态变更都要用户确认**，不得擅自写入 `.target-state.json`
+- **所有状态变更都要用户确认**，不得擅自写入 `~/.hermes/profiles/baijie/.target-state.json`
 
 ### Session 恢复
 
-下次开启目标追踪前，先检查 `.target-state.json`：
+下次开启目标追踪前，先检查 `~/.hermes/profiles/baijie/.target-state.json`：
 - 如有进行中目标，读取状态并继续追踪
 - 询问用户是否继续还是重新设定
 
