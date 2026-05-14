@@ -373,53 +373,43 @@ _目标追踪结束。_
 
 ## 目标持久化（统一）
 
-### 状态文件位置
+### 状态管理脚本
 
-**统一存储在**: `~/.hermes/profiles/baijie/.target-state.json`
+**脚本位置**: `~/repos/target-skill/scripts/target-state.py`
 
-每次目标变更（用户确认后）自动写入此文件。
+**所有状态操作必须通过脚本完成，禁止手动写入 JSON。**
+
+| 操作 | 命令 |
+|------|------|
+| 读取状态 | `python3 ~/repos/target-skill/scripts/target-state.py get` |
+| 设定目标 | `python3 ~/repos/target-skill/scripts/target-state.py set "目标描述" --confirm` |
+| 追加日志 | `python3 ~/repos/target-skill/scripts/target-state.py log "操作类型" "详细描述"` |
+| 对齐检查 | `python3 ~/repos/target-skill/scripts/target-state.py align` |
+| 简洁状态 | `python3 ~/repos/target-skill/scripts/target-state.py status` |
+| 更新进度 | `python3 ~/repos/target-skill/scripts/target-state.py update --field progress --value "进度描述"` |
+| 完成子目标 | `python3 ~/repos/target-skill/scripts/target-state.py update --subgoal-id 1 --subgoal-status done` |
+
+**状态文件**: `~/.hermes/profiles/baijie/.target-state.json`（自动备份到 `.target-state.json.bak`）
+
+### Session 结束强制对齐
+
+**每次完成有意义任务后，强制执行对齐：**
+
+```bash
+python3 ~/repos/target-skill/scripts/target-state.py align
+```
+
+展示对齐菜单让用户选择：
+1. **继续** → 推进下一个子目标
+2. **调整** → 修改目标或进度
+3. **暂停** → 暂时搁置
+4. **完成** → 标记目标达成
 
 ### 读取时机
 
-**每次新 session 开始时**，优先检查 `~/.hermes/profiles/baijie/.target-state.json`：
-- 有目标 → 恢复状态，向用户汇报当前进度
-- 无目标 → 询问用户是否有目标要继续
-
-**用户每次说"你的目标"时** → 读取状态文件，汇报当前目标 + 进度
-
-### 状态文件格式
-
-```json
-{
-  "goal": "{大目标描述}",
-  "phase": "进行中 | 已完成 | 已放弃",
-  "createdAt": "YYYY-MM-DD HH:mm",
-  "lastUpdated": "YYYY-MM-DD HH:mm",
-  "progress": "{当前进度描述}",
-  "milestones": [...],
-  "problems": [...],
-  "subGoals": [...],
-  "changeLog": [...]
-}
-```
-
-### Session 结束对齐（每次任务完成时必须执行）
-
-**每次完成一个有意义的任务后**，自动执行：
-
-```markdown
-## 🎯 目标对齐
-
-**当前目标**: {goal}
-**进度**: {progress}
-**已完成**: {done items}
-**下一步**: {next step}
-
-请确认：
-1. **继续** — 推进下一个子目标
-2. **调整** — 修改目标或优先级
-3. **暂停** — 暂时搁置
-```
+- **每次新 session 开始** → 自动调用 `target-state.py get`，有目标则汇报
+- **用户说"你的目标"** → 调用 `target-state.py get` 汇报
+- **每次任务完成** → 调用 `target-state.py align` 强制对齐
 
 ---
 
@@ -456,7 +446,10 @@ _目标追踪结束。_
 1. 解析并确认目标
 2. 拆解问题 + 优先级
 3. 将以上内容以确认格式呈现给用户
-4. **等用户确认后**才写入 `~/.hermes/profiles/baijie/.target-state.json` 和同步到 `docs/TODO.md`
+4. **等用户确认后**执行：
+   ```bash
+   python3 ~/repos/target-skill/scripts/target-state.py set "目标描述" --confirm
+   ```
 5. 锁定目标，开始追踪
 6. 每次回复前对齐
 
@@ -466,13 +459,16 @@ _目标追踪结束。_
 - 发现偏移立即报告
 - 遇到歧义立即确认
 - 每完成一个里程碑**必须先询问用户确认**后才能更新状态
-- **所有状态变更都要用户确认**，不得擅自写入 `~/.hermes/profiles/baijie/.target-state.json`
+- **所有状态变更必须通过 `target-state.py` 执行**，不得手动写 JSON
 
 ### Session 恢复
 
-下次开启目标追踪前，先检查 `~/.hermes/profiles/baijie/.target-state.json`：
-- 如有进行中目标，读取状态并继续追踪
-- 询问用户是否继续还是重新设定
+下次开启目标追踪前，调用：
+```bash
+python3 ~/repos/target-skill/scripts/target-state.py get
+```
+- 有目标 → 读取状态并继续追踪，询问用户是否继续还是重新设定
+- 无目标 → 询问用户是否有目标要设定
 
 ### 关闭追踪
 
