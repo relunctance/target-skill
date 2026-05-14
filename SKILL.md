@@ -383,13 +383,24 @@ _目标追踪结束。_
 |------|------|
 | 读取状态 | `python3 ~/repos/target-skill/scripts/target-state.py get` |
 | 设定目标 | `python3 ~/repos/target-skill/scripts/target-state.py set "目标描述" --confirm` |
-| 追加日志 | `python3 ~/repos/target-skill/scripts/target-state.py log "操作类型" "详细描述"` |
-| 对齐检查 | `python3 ~/repos/target-skill/scripts/target-state.py align` |
 | 简洁状态 | `python3 ~/repos/target-skill/scripts/target-state.py status` |
+| 对齐检查 | `python3 ~/repos/target-skill/scripts/target-state.py align` |
 | 更新进度 | `python3 ~/repos/target-skill/scripts/target-state.py update --field progress --value "进度描述"` |
-| 完成子目标 | `python3 ~/repos/target-skill/scripts/target-state.py update --subgoal-id 1 --subgoal-status done` |
+| 目标完成 | `python3 ~/repos/target-skill/scripts/target-state.py complete` |
+| 目标放弃 | `python3 ~/repos/target-skill/scripts/target-state.py abandon "原因"` |
+| 目标历史 | `python3 ~/repos/target-skill/scripts/target-state.py history` |
+| **子目标** | |
+| 添加子目标 | `python3 ~/repos/target-skill/scripts/target-state.py add-subgoal "标题" --priority P0` |
+| 列举子目标 | `python3 ~/repos/target-skill/scripts/target-state.py list-subgoals` |
+| 完成子目标 | `python3 ~/repos/target-skill/scripts/target-state.py done-subgoal 1` |
+| 删除子目标 | `python3 ~/repos/target-skill/scripts/target-state.py remove-subgoal 1` |
+| **里程碑** | |
+| 添加里程碑 | `python3 ~/repos/target-skill/scripts/target-state.py add-milestone "标题"` |
+| 列举里程碑 | `python3 ~/repos/target-skill/scripts/target-state.py list-milestones` |
+| 完成里程碑 | `python3 ~/repos/target-skill/scripts/target-state.py done-milestone 1` |
 
 **状态文件**: `~/.hermes/profiles/baijie/.target-state.json`（自动备份到 `.target-state.json.bak`）
+**历史文件**: `~/.hermes/profiles/baijie/.target-history.json`
 
 ### Session 结束强制对齐
 
@@ -400,10 +411,11 @@ python3 ~/repos/target-skill/scripts/target-state.py align
 ```
 
 展示对齐菜单让用户选择：
-1. **继续** → 推进下一个子目标
+1. **继续** → 推进下一个子目标/里程碑
 2. **调整** → 修改目标或进度
 3. **暂停** → 暂时搁置
 4. **完成** → 标记目标达成
+5. **放弃** → 放弃当前目标
 
 ### 读取时机
 
