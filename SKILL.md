@@ -411,6 +411,25 @@ python3 ~/repos/target-skill/scripts/target-state.py align
 - **用户说"你的目标"** → 调用 `target-state.py get` 汇报
 - **每次任务完成** → 调用 `target-state.py align` 强制对齐
 
+### 与 honesty-skill 联动
+
+**每次目标对齐时**，顺便做一次诚实自检：
+
+```bash
+python3 ~/repos/honesty-skill/scripts/honesty-check.py --input "刚才的回复内容"
+```
+
+**触发条件**：
+- 完成一个里程碑后
+- 发现目标偏移需要纠正时
+- 用户质疑回答准确性时
+
+对齐时如果发现红旗，主动认错：
+```bash
+python3 ~/repos/honesty-skill/scripts/honesty-check.py admit \
+  --original "说错的内容" --corrected "正确内容"
+```
+
 ---
 
 ## 目标 → 任务整合
