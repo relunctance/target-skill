@@ -1,0 +1,10 @@
+{
+  "name": "target-skill",
+  "version": "1.0.0",
+  "description": "目标追踪+抗偏移 — 设定目标后持续对齐，AI跑偏时主动纠正，歧义时让用户拍板",
+  "author": "relunctance",
+  "homepage": "https://github.com/relunctance/target-skill",
+  "repository": "https://github.com/relunctance/target-skill",
+  "license": "MIT",
+  "skills": "./"
+}

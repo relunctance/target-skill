@@ -247,6 +247,83 @@ _目标追踪结束。_
 
 ---
 
+## 目标持久化
+
+### 状态文件
+
+每次目标变更时，将状态写入 `.target-state.json`（加入 `.gitignore`）：
+
+```json
+{
+  "goal": "{目标描述}",
+  "phase": "进行中 | 已完成 | 已放弃",
+  "createdAt": "YYYY-MM-DD HH:mm",
+  "milestones": [
+    {
+      "id": 1,
+      "title": "{里程碑名称}",
+      "status": "done | active | pending",
+      "completedAt": null
+    }
+  ],
+  "problems": [
+    {
+      "id": 1,
+      "description": "{问题描述}",
+      "priority": "P0 | P1 | P2",
+      "status": "done | active | pending"
+    }
+  ],
+  "changeLog": [
+    {
+      "time": "YYYY-MM-DD HH:mm",
+      "action": "设定目标 | 调整目标 | 完成里程碑 | 添加问题",
+      "detail": "{具体描述}"
+    }
+  ]
+}
+```
+
+### Session 恢复
+
+每次开启目标追踪前，先检查 `.target-state.json`：
+
+```bash
+if [ -f "$PROJECT_PATH/.target-state.json" ]; then
+  GOAL=$(python3 -c "import json; print(json.load(open('$PROJECT_PATH/.target-state.json'))['goal'])")
+  PHASE=$(python3 -c "import json; print(json.load(open('$PROJECT_PATH/.target-state.json'))['phase'])")
+  echo "📌 检测到进行中的目标: $GOAL (状态: $PHASE)"
+  # 继续追踪
+fi
+```
+
+---
+
+## 目标 → 任务整合
+
+### 与 docs/TODO.md 联动
+
+目标拆解后，自动同步到 `docs/TODO.md`：
+
+```markdown
+## 当前冲刺
+
+- [ ] {P0 问题1}
+- [ ] {P0 问题2}
+```
+
+**联动规则：**
+
+| 目标操作 | 同步到 docs/TODO.md |
+|---------|---------------------|
+| 设定目标 | 将 P0/P1 问题写入「当前冲刺」|
+| 完成里程碑 | 将对应 TODO 标记为完成 |
+| 添加问题 | 在「计划中」新增条目 |
+| 目标达成 | 将所有条目移至「已完成」|
+| 目标放弃 | 保持当前状态，用户手动处理 |
+
+---
+
 ## 使用方式
 
 ### 开启目标追踪
@@ -254,8 +331,10 @@ _目标追踪结束。_
 用户说"设定目标"后，AI 立即：
 1. 解析并确认目标
 2. 拆解问题 + 优先级
-3. 锁定目标，开始追踪
-4. 每次回复前对齐
+3. 写入 `.target-state.json`（持久化）
+4. 同步到 `docs/TODO.md`
+5. 锁定目标，开始追踪
+6. 每次回复前对齐
 
 ### 持续追踪
 
@@ -263,9 +342,16 @@ _目标追踪结束。_
 - 发现偏移立即报告
 - 遇到歧义立即确认
 - 每完成一个里程碑提醒用户
+- 每次变更更新 `.target-state.json`
+
+### Session 恢复
+
+下次开启目标追踪前，先检查 `.target-state.json`：
+- 如有进行中目标，读取状态并继续追踪
+- 询问用户是否继续还是重新设定
 
 ### 关闭追踪
 
-- 用户宣布目标达成
-- 用户主动放弃
+- 用户宣布目标达成 → 更新状态文件，标记完成
+- 用户主动放弃 → 标记放弃，记录原因
 - 用户说"结束追踪"
