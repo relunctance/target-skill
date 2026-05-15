@@ -32,29 +32,46 @@ from datetime import datetime
 from pathlib import Path
 
 
+def _is_hermes_profile_env() -> bool:
+    """检查是否在 Hermes profile 环境（Path.home() 包含 .hermes/profiles/）"""
+    home_parts = Path.home().resolve().parts
+    return ".hermes" in home_parts and "profiles" in home_parts
+
+
 def _detect_hermes_profile() -> str:
     """
-    检测当前 Hermes profile 名称。
+    检测当前 agent 的 profile/workspace 名称。
 
-    WSL Hermes profile 环境：
-      Path.home() = /home/gql/.hermes/profiles/baijie/home/
+    Hermes profile 环境（Path.home() = /home/<user>/.hermes/profiles/<PROFILE>/home/）
+      → OpenClaw workspace 环境（cwd 在 ~/.openclaw/workspace-<name>/ 下）
+      → 标准 Linux 环境（无 profile、无 workspace）
 
-    逻辑：检查 Path.home() 的祖先路径中是否有 .hermes/profiles/<NAME>/home，
-    匹配到的 <NAME> 就是 profile 名。
-
-    返回 profile 名（如 'baijie'），检测失败则返回 'default'。
+    返回 profile/workspace 名（如 'baijie'、'workspace'、'workspace-bailong'），
+    检测失败则返回 'default'。
     """
     home = Path.home().resolve()
+    cwd = Path.cwd().resolve()
 
-    # 向上遍历祖先路径
-    for parent in [home] + list(home.parents):
-        parts = parent.parts
-        # 查找 .hermes/profiles/<NAME>/home 结构
-        for i, part in enumerate(parts):
-            if part == "profiles" and i + 2 < len(parts):
-                name = parts[i + 1]
-                if parts[i + 2] == "home":
-                    return name
+    # 1. Hermes profile 环境：从 Path.home() 祖先路径检测
+    if _is_hermes_profile_env():
+        for parent in [home] + list(home.parents):
+            parts = parent.parts
+            for i, part in enumerate(parts):
+                if part == "profiles" and i + 2 < len(parts):
+                    name = parts[i + 1]
+                    if parts[i + 2] == "home":
+                        return name
+
+    # 2. OpenClaw workspace 环境：从 cwd 检测
+    openclaw_base = home / ".openclaw"
+    if openclaw_base.exists():
+        for parent in [cwd] + list(cwd.parents):
+            if str(parent).startswith(str(openclaw_base / "workspace")):
+                parts = parent.parts
+                for i, part in enumerate(parts):
+                    if part == "workspace" or part.startswith("workspace-"):
+                        return part
+                return "workspace"  # main workspace
 
     return "default"
 
@@ -73,7 +90,20 @@ _HERMES_DIR = Path(_HOME) / ".hermes"
 _HERMES_DIR.mkdir(exist_ok=True)
 
 _PROFILE = _detect_hermes_profile()
-_PROFILE_DIR = _HERMES_DIR / "profiles" / _PROFILE
+
+# 根据平台选择状态文件目录
+# - Hermes profile 环境：~/.hermes/profiles/<profile>/
+# - OpenClaw workspace 环境：~/.openclaw/<workspace>/
+# - 其他（标准 Linux）：~/.hermes/profiles/<profile>/（profile 检测失败时为 default）
+_is_hermes = _is_hermes_profile_env()
+
+if not _is_hermes and (Path(_HOME) / ".openclaw").exists():
+    # OpenClaw workspace（非 Hermes profile 环境）
+    _PROFILE_DIR = Path(_HOME) / ".openclaw" / _PROFILE
+else:
+    # Hermes profile 环境或标准 Linux
+    _PROFILE_DIR = _HERMES_DIR / "profiles" / _PROFILE
+
 _PROFILE_DIR.mkdir(exist_ok=True)
 
 STATE_FILE = _PROFILE_DIR / ".target-state.json"
