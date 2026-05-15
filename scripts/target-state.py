@@ -27,8 +27,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-# 复用 base-skill 的平台检测模块（多 skill 共用）
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "base-skill" / "scripts"))
+# pip 安装的跨平台路径检测模块
 from platform_detect import state_file, config_dir
 
 STATE_FILE = state_file(".target-state.json")
