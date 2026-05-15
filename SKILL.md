@@ -399,8 +399,8 @@ _目标追踪结束。_
 | 列举里程碑 | `python3 ~/repos/target-skill/scripts/target-state.py list-milestones` |
 | 完成里程碑 | `python3 ~/repos/target-skill/scripts/target-state.py done-milestone 1` |
 
-**状态文件**: `~/.hermes/.target-state.json`（自动备份到 `.target-state.json.bak`）
-**历史文件**: `~/.hermes/.target-history.json`
+**状态文件**: `~/.hermes/profiles/<profile>/.target-state.json`（Hermes）或 `~/.openclaw/<workspace>/.target-state.json`（OpenClaw）
+**历史文件**: 同目录下的 `.target-history.json`
 
 ### Session 结束强制对齐
 
