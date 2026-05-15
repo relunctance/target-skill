@@ -17,9 +17,9 @@ target-state — 目标状态管理脚本
   python target-state.py done-milestone 1   # 完成里程碑
   python target-state.py history            # 查看目标历史
 
-状态文件：~/.hermes/.target-state.json
-备份文件：~/.hermes/.target-state.json.bak
-历史文件：~/.hermes/.target-history.json
+状态文件：~/.hermes/profiles/<profile>/.target-state.json
+备份文件：~/.hermes/profiles/<profile>/.target-state.json.bak
+历史文件：~/.hermes/profiles/<profile>/.target-history.json
 """
 
 import argparse
@@ -30,6 +30,33 @@ import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
+
+
+def _detect_hermes_profile() -> str:
+    """
+    检测当前 Hermes profile 名称。
+
+    WSL Hermes profile 环境：
+      Path.home() = /home/gql/.hermes/profiles/baijie/home/
+
+    逻辑：检查 Path.home() 的祖先路径中是否有 .hermes/profiles/<NAME>/home，
+    匹配到的 <NAME> 就是 profile 名。
+
+    返回 profile 名（如 'baijie'），检测失败则返回 'default'。
+    """
+    home = Path.home().resolve()
+
+    # 向上遍历祖先路径
+    for parent in [home] + list(home.parents):
+        parts = parent.parts
+        # 查找 .hermes/profiles/<NAME>/home 结构
+        for i, part in enumerate(parts):
+            if part == "profiles" and i + 2 < len(parts):
+                name = parts[i + 1]
+                if parts[i + 2] == "home":
+                    return name
+
+    return "default"
 
 
 def _get_home() -> str:
@@ -45,9 +72,13 @@ _HOME = _get_home()
 _HERMES_DIR = Path(_HOME) / ".hermes"
 _HERMES_DIR.mkdir(exist_ok=True)
 
-STATE_FILE = _HERMES_DIR / ".target-state.json"
+_PROFILE = _detect_hermes_profile()
+_PROFILE_DIR = _HERMES_DIR / "profiles" / _PROFILE
+_PROFILE_DIR.mkdir(exist_ok=True)
+
+STATE_FILE = _PROFILE_DIR / ".target-state.json"
 BACKUP_FILE = STATE_FILE.with_suffix(".json.bak")
-HISTORY_FILE = _HERMES_DIR / ".target-history.json"
+HISTORY_FILE = _PROFILE_DIR / ".target-history.json"
 
 
 # ─── 工具函数 ───────────────────────────────────────────────────
