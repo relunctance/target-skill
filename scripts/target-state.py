@@ -17,22 +17,37 @@ target-state — 目标状态管理脚本
   python target-state.py done-milestone 1   # 完成里程碑
   python target-state.py history            # 查看目标历史
 
-状态文件：~/.hermes/profiles/baijie/.target-state.json
-备份文件：~/.hermes/profiles/baijie/.target-state.json.bak
-历史文件：~/.hermes/profiles/baijie/.target-history.json
+状态文件：~/.hermes/.target-state.json
+备份文件：~/.hermes/.target-state.json.bak
+历史文件：~/.hermes/.target-history.json
 """
 
 import argparse
 import json
 import os
+import platform
 import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
 
-STATE_FILE = Path.home() / ".hermes" / "profiles" / "baijie" / ".target-state.json"
+
+def _get_home() -> str:
+    """获取实际用户 home 目录，WSL Hermes profile 环境下返回 /home/<user>"""
+    if platform.system() == "Linux" and os.path.exists("/proc/version"):
+        with open("/proc/version") as f:
+            if "WSL" in f.read():
+                return f"/home/{os.environ.get('USER', 'root')}"
+    return str(Path.home())
+
+
+_HOME = _get_home()
+_HERMES_DIR = Path(_HOME) / ".hermes"
+_HERMES_DIR.mkdir(exist_ok=True)
+
+STATE_FILE = _HERMES_DIR / ".target-state.json"
 BACKUP_FILE = STATE_FILE.with_suffix(".json.bak")
-HISTORY_FILE = Path.home() / ".hermes" / "profiles" / "baijie" / ".target-history.json"
+HISTORY_FILE = _HERMES_DIR / ".target-history.json"
 
 
 # ─── 工具函数 ───────────────────────────────────────────────────
