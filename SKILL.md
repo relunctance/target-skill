@@ -1,6 +1,6 @@
 ---
 name: target-skill
-description: 目标追踪 + 抗偏移 — 设定目标后持续对齐，AI跑偏时主动纠正，歧义时让用户确认，拆解问题优先级
+description: 目标追踪 + 抗偏移 — 设定目标后持续对齐，AI跑偏时主动纠正，歧义时让用户确认
 triggers:
   - 设定目标
   - 目标跑偏
@@ -12,11 +12,8 @@ triggers:
   - 纠正AI
   - 发现更大目标
   - 目标变化
-  - 目标冲突
   - 设定小目标
   - 添加子目标
-  - 大目标下补充小目标
-  - 在当前目标下加一个小目标
   - 继续目标
   - 批准了规划
   - 开始执行
@@ -27,15 +24,17 @@ triggers:
   - 回顾目标
   - 继续追踪目标
   - 我的目标是什么
-  - 回顾下目标
   - 你的目标
   - 当前目标
   - 我的当前目标
 category: productivity
 author: relunctance
 created: 2026-05-15
-updated: 2026-05-15
+updated: 2026-05-17
+version: "2.0.0"
 platforms: all
+depends_on:
+  - task-split-skill
 tags:
   - goal
   - tracking
@@ -48,11 +47,27 @@ tags:
 
 > 让 AI 始终围绕目标工作，跑偏时主动纠正，歧义时让用户拍板
 
+---
+
+## 核心原则
+
+### 第一原则：目标永远优先
+
+每次回复前，先问自己：**这个回复是否在推进目标？**
+
+### 第二原则：用户有最终决策权
+
+歧义、偏移、目标变化 — 不自己猜，让用户选择。
+
+### 第三原则：必须用户确认才能更新状态
+
+**所有目标状态变更必须经过用户明确确认，AI 不得擅自更新。**
+
+---
+
 ## 触发条件
 
 ### 每次新对话开始时（必须执行）
-
-**每次新 session 开始时，主动检查是否有进行中的目标：**
 
 ```markdown
 ## 🎯 目标检查
@@ -64,300 +79,134 @@ tags:
 3. **无目标** — 好的，随时可以告诉我
 ```
 
-如果找到 `.target-state.json`：
-```markdown
-## 🎯 检测到进行中的目标
-
-**大目标**: {goal}
-**状态**: {phase}
-**子目标**: {subGoals 数量}
-**上次操作**: {最后一条 changeLog}
-
-### ⏱️ 时间与进度
-| 项目 | 值 |
-|------|-----|
-| 已用时间 | {从设定时计算} |
-| 进度 | {XX%} |
-| 预计剩余 | {估算} |
-
-### 🔴 P0 阻塞（高亮）
-{如果有未解决的 P0，列出}
-
-### 📊 健康度
-{detailHealthScore(goal, subGoals, blockages)}
-
-请确认：
-1. **继续追踪** — 恢复目标状态，继续推进
-2. **调整目标** — 修改大目标或子目标
-3. **放弃目标** — 关闭追踪，重新开始
-```
-
 ### 用户主动触发
 
-用户说：
-- 设定目标
-- 目标跑偏
-- AI跑偏了
-- 追踪这个目标
-- 帮我保持目标
-- 纠正AI方向
-- 发现更大目标
-- 这个和目标冲突吗
-- 目标变化了
-- **你的目标**
-- **当前目标**
-- **我的目标是什么**
+| 触发词 | 说明 |
+|--------|------|
+| `追踪目标` / `开始执行` | 从 task-split-skill 接管 |
+| `设定目标` | 手动设定目标 |
+| `当前进度` / `当前目标` | 查看进度 |
 
-## 核心准则
+**不触发：**
+- `制定计划` → PLAN skill
+- `拆解任务` → task-split-skill
+- `评审计划` → plan-review-skill
 
-### 第一原则：目标永远优先
+---
 
-每次回复前，先问自己：**这个回复是否在推进目标？**
+## 三种启动方式
 
-如果不在，先对齐目标，再执行当前任务。
+### 方式 1：从 task-split-skill 接管（推荐）
 
-### 第二原则：用户有最终决策权
+```
+task-split-skill 拆解完成
+    ↓
+用户说「开始执行」/「追踪目标」
+    ↓
+target-skill 接收 milestone + subTask 结构
+    ↓
+写入 .target-state.json
+    ↓
+开始追踪
+```
 
-歧义、偏移、目标变化 — 不自己猜，让用户选择。
+### 方式 2：从 .target-trigger 接管
 
-### 第三原则：必须用户确认才能更新状态
+```
+plan-review-skill 批准后写 .target-trigger
+    ↓
+用户说「追踪目标」
+    ↓
+target-skill 检测到 .target-trigger
+    ↓
+检查是否有 milestone + subTask
+    ├── 有 → 开始追踪
+    └── 无 → 提示用户「请先用 task-split-skill 拆解」
+```
 
-**所有目标状态变更必须经过用户明确确认，AI 不得擅自更新。**
+### 方式 3：手动设定目标
 
-以下操作都需要先询问用户，等用户说"确认"后才执行：
-- 设定大目标（必须明确且具体询问用户）
-- 调整/修改大目标（必须明确且具体询问用户）
-- 完成某个里程碑
-- 添加/移除子目标
-- 完成子目标
-- 添加/移除问题
-- 标记目标达成
-- 放弃目标
-- 任何对 `.target-state.json` 的写入
-
-**确认格式**：
-```markdown
-## ❓ 请确认目标状态更新
-
-**操作**: {操作描述}
-**更新内容**: {具体变更}
-
-请回复"确认"执行，或告诉我需要调整的地方。
+```
+用户说「设定目标」
+    ↓
+按现有 SOP 设定目标
+    ↓
+写入 .target-state.json
+    ↓
+开始追踪
 ```
 
 ---
 
----
+## .target-state.json 格式
 
-## 目标设定
-
-### 用户设定目标时
-
-```markdown
-## 🎯 当前目标
-
-**目标**: {用户描述的目标}
-**设定时间**: {YYYY-MM-DD HH:mm}
-**状态**: 🟡 进行中
-
-### ⏱️ 时间追踪
-| 项目 | 值 |
-|------|-----|
-| 预计总耗时 | {如：2小时/3天} |
-| 已用时间 | {从设定时计算} |
-| 进度 | {XX%} |
-
-### 🔴 P0 阻塞问题（未解决前高亮显示）
-| # | 问题 | 状态 |
-|---|------|------|
-| 1 | {P0核心问题} | 🔴 未解决 |
-
-### 📌 风险与依赖
-| 类型 | 描述 | 影响 |
-|------|------|------|
-| 风险 | {可能的阻碍} | {高/中/低} |
-| 依赖 | {依赖外部因素} | {谁/什么} |
-
-### 📊 健康度评分
-{detailHealthScore(goal, subGoals, blockages)}
-
-### 问题拆解
-
-| # | 问题 | 优先级 | 状态 |
-|---|------|--------|------|
-| P0 | {必须解决的核心问题} | P0 | ⬜ |
-| P1 | {重要但不紧急} | P1 | ⬜ |
-| P2 | {可选/优化项} | P2 | ⬜ |
-
-### 关键路径
-
-1. {步骤1}
-2. {步骤2}
-3. {步骤3}
-
----
-_目标已锁定。每次回复前将对齐目标。_
+```json
+{
+  "goal": "项目愿景",
+  "phase": "active",
+  "source": "task-split",
+  "createdAt": "YYYY-MM-DDTHH:mm:ss+08:00",
+  "lastUpdated": "YYYY-MM-DDTHH:mm:ss+08:00",
+  "milestones": [
+    {
+      "id": "M1",
+      "title": "里程碑标题",
+      "status": "active",
+      "completedAt": null,
+      "subTasks": [
+        {
+          "id": "M1-1",
+          "title": "子任务标题",
+          "status": "done",
+          "completedAt": "YYYY-MM-DDTHH:mm:ss+08:00"
+        },
+        {
+          "id": "M1-2",
+          "title": "子任务标题",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "M2",
+      "title": "里程碑2标题",
+      "status": "pending",
+      "completedAt": null,
+      "subTasks": []
+    }
+  ],
+  "changeLog": [
+    {
+      "time": "YYYY-MM-DDTHH:mm:ss+08:00",
+      "action": "接管 milestone + subTask",
+      "detail": "来源: task-split-skill"
+    }
+  ]
+}
 ```
 
-### 目标变更记录
+### 状态字段说明
 
-```markdown
-## 📋 目标变更日志
+| 字段 | 说明 |
+|------|------|
+| `source` | `"task-split"` 或 `"manual"` |
+| `milestones[].status` | `pending` / `active` / `done` |
+| `subTasks[].status` | `pending` / `active` / `blocked` / `done` |
 
-| 时间 | 操作 | 原因 | 确认人 |
-|------|------|------|--------|
-| YYYY-MM-DD HH:mm | 初始设定 | - | 用户 |
-| YYYY-MM-DD HH:mm | 调整为: {新目标} | {原因} | 用户 |
+### 状态转换规则
+
 ```
+milestone.status:
+  pending → active（第一个 subTask 开始）
+  active → done（所有 subTask done）
+  active → blocked（所有 subTask blocked）
 
----
-
-## 子目标（Sub-goals）
-
-### 用户要求添加子目标时
-
-**大目标不变，在其下补充小目标。子目标从属于大目标，完成子目标 = 推进大目标。**
-
-```markdown
-## 🎯 当前目标结构
-
-### 大目标
-**目标**: {大目标描述}
-**设定时间**: {YYYY-MM-DD HH:mm}
-**状态**: 🟡 进行中
-
-### ⏱️ 时间追踪
-| 项目 | 值 |
-|------|-----|
-| 已用时间 | {从设定时计算} |
-| 进度 | {XX%} |
-
-### 🔴 P0 阻塞（未解决前高亮）
-| # | 问题 | 状态 |
-|---|------|------|
-| 1 | {P0核心问题} | 🔴 未解决 |
-
-### 📊 健康度
-{detailHealthScore(goal, subGoals, blockages)}
-
-### 子目标
-| # | 子目标 | 优先级 | 状态 |
-|---|--------|--------|------|
-| 1 | {子目标描述} | P0 | ⬜ |
-| 2 | {子目标描述} | P1 | ⬜ |
-
----
-
-_目标已锁定。每次回复前将对齐目标。_
+subTask.status:
+  pending → active（开始执行）
+  active → done（完成）
+  active → blocked（被依赖阻塞）
+  blocked → active（依赖完成）
 ```
-
-### 添加子目标时的确认格式
-
-```markdown
-## ❓ 请确认添加子目标
-
-**大目标**: {当前大目标}
-**新子目标**: {子目标描述}
-**优先级**: P0 | P1 | P2
-**所属大目标**: {大目标名称}
-
-请回复"确认"执行，或告诉我需要调整的地方。
-```
-
-### 子目标与大目标的关系
-
-- **子目标从属于大目标** — 完成子目标等于推进大目标
-- **子目标可以独立完成** — 完成后需用户确认，询问是否更新状态
-- **子目标不影响大目标** — 大目标变更需要单独确认（见第三原则）
-- **子目标可以升级为大目标** — 用户明确要求时，经过大目标确认流程
-
----
-
-## 跑偏检测与纠正
-
-### 检测到偏移时
-
-**立即暂停当前任务**，向用户报告：
-
-```markdown
-## ⚠️ 目标偏移检测
-
-**当前动作**: {AI正在做的事}
-**目标**: {原始目标}
-**偏移点**: {具体跑偏的地方}
-
-### 对比分析
-
-| 方面 | 当前动作 | 目标要求 |
-|------|---------|---------|
-| {方面1} | {正在做} | {应该做} |
-| {方面2} | {正在做} | {应该做} |
-
-### 用户选择
-
-1. **坚持目标** — AI 自我纠正，回到目标轨道
-2. **调整目标** — 更新目标，继续当前方向
-3. **暂停** — 暂时搁置，稍后继续
-4. **放弃** — 关闭目标追踪
-```
-
----
-
-## 歧义确认流程
-
-### 遇到歧义时
-
-```markdown
-## ❓ 歧义确认
-
-**当前议题**: {具体问题}
-**可能的方向**:
-
-| 选项 | 动作 | 对目标的影响 |
-|------|------|-------------|
-| A | {方向A} | {对目标的影响} |
-| B | {方向B} | {对目标的影响} |
-
-**原始目标**: {目标描述}
-
-请选择方向，或告诉我其他想法。
-```
-
----
-
-## 发现更大目标
-
-### AI 发现更大目标时
-
-```markdown
-## 💡 发现更大目标
-
-**当前目标**: {当前正在追求的目标}
-**发现**: {AI发现的机会/更大目标}
-
-### 分析
-
-| 对比 | 当前目标 | 更大目标 |
-|------|---------|---------|
-| 价值 | {当前价值} | {潜在价值} |
-| 成本 | {当前成本} | {额外成本} |
-| 时间 | {当前时间} | {额外时间} |
-
-### 用户选择
-
-1. **切换目标** — 放弃当前，追逐更大目标
-2. **并行推进** — 当前目标继续，同时探索新目标
-3. **保持不变** — 坚持当前目标，忽略新机会
-4. **稍后考虑** — 记录下来，之后再决定
-```
-
----
-
----
-
-### 目标持久化（已迁移）
-
-状态文件位置、使用方式、对齐时机 → 详见下方「目标持久化（统一）」章节。
 
 ---
 
@@ -369,329 +218,80 @@ _目标已锁定。每次回复前将对齐目标。_
 [ ] 是否有新的偏移迹象？
 [ ] P0 阻塞问题有新进展吗？
 [ ] 是否遇到新的问题/障碍？
-[ ] 是否发现更大的机会？
 [ ] 健康度是否有下降？
 
 如果任何一项异常 → 先处理异常，再继续
 ```
 
-### 健康度评分算法
+### 健康度评分
 
-{detailHealthScore(goal, subGoals, blockages)} 是占位符，实际使用时用以下算法：
-
-```
-评分维度：
-- 进度（25%）：子目标完成率
-- P0阻塞（25%）：无P0=25，未解决P0=0
-- 偏移风险（25%）：无偏移=25，有偏移=0
-- 时间透支（25%）：未超预计=25，超时扣分
-
-健康度等级：
-- 🟢 80-100分：健康
-- 🟡 50-79分：警告
-- 🔴 0-49分：危险
-
-每次对齐检查都要输出健康度。
-```
-
----
-
-## 目标达成
-
-### 用户宣布目标达成
-
-```markdown
-## ✅ 目标达成
-
-**目标**: {原始目标}
-**达成时间**: {YYYY-MM-DD HH:mm}
-**耗时**: {实际花费时间}
-
-### 总结
-
-{简要总结达成结果}
-
-### 经验记录
-
-{从这次目标执行中学到了什么}
-
----
-_目标追踪结束。_
-```
-
----
-
-## 目标放弃
-
-### 用户主动放弃
-
-```markdown
-## ❌ 目标放弃
-
-**目标**: {原始目标}
-**放弃时间**: {YYYY-MM-DD HH:mm}
-**放弃原因**: {用户说明的原因}
-
-### 已完成
-
-{列出已完成的部分}
-
-### 未完成
-
-{列出未完成的部分}
-
----
-_目标追踪结束。_
-```
-
----
-
-## 目标持久化（统一）
-
-### 状态管理脚本
-
-**脚本位置**: `~/repos/target-skill/scripts/target-state.py`
-
-**所有状态操作必须通过脚本完成，禁止手动写入 JSON。**
-
-| 操作 | 命令 |
+| 维度 | 权重 |
 |------|------|
-| 读取状态 | `python3 ~/repos/target-skill/scripts/target-state.py get` |
-| 设定目标 | `python3 ~/repos/target-skill/scripts/target-state.py set "目标描述" --confirm` |
-| 简洁状态 | `python3 ~/repos/target-skill/scripts/target-state.py status` |
-| 对齐检查 | `python3 ~/repos/target-skill/scripts/target-state.py align` |
-| 更新进度 | `python3 ~/repos/target-skill/scripts/target-state.py update --field progress --value "进度描述"` |
-| 目标完成 | `python3 ~/repos/target-skill/scripts/target-state.py complete` |
-| 目标放弃 | `python3 ~/repos/target-skill/scripts/target-state.py abandon "原因"` |
-| 目标历史 | `python3 ~/repos/target-skill/scripts/target-state.py history` |
-| **子目标** | |
-| 添加子目标 | `python3 ~/repos/target-skill/scripts/target-state.py add-subgoal "标题" --priority P0` |
-| 列举子目标 | `python3 ~/repos/target-skill/scripts/target-state.py list-subgoals` |
-| 完成子目标 | `python3 ~/repos/target-skill/scripts/target-state.py done-subgoal 1` |
-| 删除子目标 | `python3 ~/repos/target-skill/scripts/target-state.py remove-subgoal 1` |
-| **里程碑** | |
-| 添加里程碑 | `python3 ~/repos/target-skill/scripts/target-state.py add-milestone "标题"` |
-| 列举里程碑 | `python3 ~/repos/target-skill/scripts/target-state.py list-milestones` |
-| 完成里程碑 | `python3 ~/repos/target-skill/scripts/target-state.py done-milestone 1` |
+| 进度（子目标完成率） | 25% |
+| P0阻塞（无P0=25，未解决P0=0） | 25% |
+| 偏移风险（无偏移=25，有偏移=0） | 25% |
+| 时间透支（未超=25，超时扣分） | 25% |
 
-**状态文件**: `~/.hermes/profiles/<profile>/.target-state.json`（Hermes）或 `~/.openclaw/<workspace>/.target-state.json`（OpenClaw）
-**历史文件**: 同目录下的 `.target-history.json`
-
-### Session 结束强制对齐
-
-**每次完成有意义任务后，强制执行对齐：**
-
-```bash
-python3 ~/repos/target-skill/scripts/target-state.py align
-```
-
-展示对齐菜单让用户选择：
-1. **继续** → 推进下一个子目标/里程碑
-2. **调整** → 修改目标或进度
-3. **暂停** → 暂时搁置
-4. **完成** → 标记目标达成
-5. **放弃** → 放弃当前目标
-
-### 读取时机
-
-- **每次新 session 开始** → 自动调用 `target-state.py get`，有目标则汇报
-- **用户说"你的目标"** → 调用 `target-state.py get` 汇报
-- **每次任务完成** → 调用 `target-state.py align` 强制对齐
-
-### 与 honesty-skill 联动
-
-**每次目标对齐时**，顺便做一次诚实自检：
-
-```bash
-python3 ~/repos/honesty-skill/scripts/honesty-check.py --input "刚才的回复内容"
-```
-
-**触发条件**：
-- 完成一个里程碑后
-- 发现目标偏移需要纠正时
-- 用户质疑回答准确性时
-
-对齐时如果发现红旗，主动认错：
-```bash
-python3 ~/repos/honesty-skill/scripts/honesty-check.py admit \
-  --original "说错的内容" --corrected "正确内容"
-```
-
----
-
-## 目标 → 任务整合
-
-### 与 docs/TODO.md 联动
-
-目标拆解后，自动同步到 `docs/TODO.md`：
-
-```markdown
-## 当前冲刺
-
-- [ ] {P0 问题1}
-- [ ] {P0 问题2}
-```
-
-**联动规则（所有操作必须用户确认后才能执行）：**
-
-| 目标操作 | 同步到 docs/TODO.md |
-|---------|---------------------|
-| 设定目标 | 将 P0/P1 问题写入「当前冲刺」，**需确认** |
-| 完成里程碑 | 将对应 TODO 标记为完成，**需确认** |
-| 添加问题 | 在「计划中」新增条目，**需确认** |
-| 目标达成 | 将所有条目移至「已完成」，**需确认** |
-| 目标放弃 | 保持当前状态，**需确认** |
-
----
-
-## 使用方式
-
-### 开启目标追踪
-
-用户说"设定目标"后，AI 立即：
-1. 解析并确认目标
-2. 拆解问题 + 优先级
-3. 将以上内容以确认格式呈现给用户
-4. **等用户确认后**执行：
-   ```bash
-   python3 ~/repos/target-skill/scripts/target-state.py set "目标描述" --confirm
-   ```
-5. 锁定目标，开始追踪
-6. 每次回复前对齐
-
-### 持续追踪
-
-- 每次回复前检查是否对齐目标
-- 发现偏移立即报告
-- 遇到歧义立即确认
-- 每完成一个里程碑**必须先询问用户确认**后才能更新状态
-- **所有状态变更必须通过 `target-state.py` 执行**，不得手动写 JSON
-
-### Session 恢复
-
-下次开启目标追踪前，调用：
-```bash
-python3 ~/repos/target-skill/scripts/target-state.py get
-```
-- 有目标 → 读取状态并继续追踪，询问用户是否继续还是重新设定
-- 无目标 → 询问用户是否有目标要设定
-
-### 关闭追踪
-
-- 用户宣布目标达成 → **确认后**更新状态文件，标记完成
-- 用户主动放弃 → **确认后**标记放弃，记录原因
-- 用户说"结束追踪"
-
----
-
-## 交接协议
-
-### 从 plan-review-skill 接管
-
-**触发条件**：项目根目录存在 `.target-trigger` 文件
-
-**LLM 操作步骤**（按顺序执行）：
-
-1. **检查触发文件**
-   检查项目根目录是否存在 `.target-trigger`
-
-2. **读取 PLAN.md**
-   从 `.target-trigger` 中的 `planFile` 路径读取 `docs/PLAN.md`
-
-3. **解析里程碑**
-   在 PLAN.md 中找到「里程碑」表格，提取每行的：ID、标题、验收标准
-
-4. **解析交付物**
-   在 PLAN.md 中找到「交付物」表格，提取每行的：名称、负责人、截止日期
-
-5. **初始化追踪状态**
-   生成 `.target-state.json`，所有 milestone 和 sub-task 状态初始化为 `pending`
-
-6. **激活追踪**
-   向用户输出：
-   ```
-   📌 检测到已批准的规划：{goal}
-   已从 {planFile} 恢复 {N} 个里程碑
-   开始执行追踪...
-   ```
-
-**注意**：LLM 直接解析 markdown 表格，不需要额外脚本。
-
-### 读取 PLAN.md 的 SOP
-
-当需要从 PLAN.md 解析 milestone 时：
-
-1. 在 PLAN.md 中找到「里程碑」表格（`# 里程碑` 章节下的表格）
-2. 提取每行：ID、标题、验收标准
-3. 在「交付物」表格中找到关联该 milestone 的截止日期 → 填入 `dueDate`
-4. 在「风险预判」或「需求约束」章节中判断里程碑间的前置依赖 → 填入 `blockedBy`（如 M2 依赖 M1，则 M2 的 `blockedBy: ["M1"]`）
-
-**注意**：LLM 直接解析 markdown 表格，不需要额外脚本。
-
-### 进度报告 SOP
-
-当用户问「当前进度」时，按以下格式输出：
-
-```markdown
-## 📊 执行进度
-
-**目标**: {goal}
-**总体进度**: {X}%
-**进行中**: {N} 个任务
-**已完成**: {N} 个任务
-**被阻塞**: {N} 个任务
-
-### Milestone 状态
-
-| Milestone | 状态 | 进度 | 截止日期 | 依赖 |
-|-----------|------|------|---------|------|
-| {M1} | ✅ 完成 | 100% | 2026-05-20 | — |
-| {M2} | 🔵 进行中 | 60% | 2026-05-25 | 等待 M1 |
-| {M3} | ⬜ 待开始 | 0% | — | 等待 M2 |
-
-### 当前任务
-
-🔵 正在做：{当前 active 的 sub-task}
-⚠️ 被阻塞：{blocked 的 sub-task}（原因: {blocker}）
-
-### 阻塞问题
-
-| # | 任务 | 阻塞原因 | 时长 |
-|---|------|---------|------|
-| B1 | {task} | {reason} | {duration} |
-
-### 交付物
-
-| 交付物 | 状态 | 关联任务 |
-|--------|------|---------|
-| {D1} | ⏳ | {task} |
-```
-
-### 增强的追踪字段
-
-`.target-state.json` 新增以下字段：
-
-| 字段 | 说明 |
+| 等级 | 分数 |
 |------|------|
-| `source` | `"manual"` 或 `"plan-review"` |
-| `planFile` | 关联的 PLAN.md 路径 |
-| `status` | subTask 的状态：`pending \| active \| blocked \| done` |
-| `blockedAt` | 进入 blocked 的时间 |
-| `blocker` | 阻塞原因描述 |
-| `deliverables` | 交付物列表 |
-| `blockers` | 阻塞问题列表 |
-| `dueDate` | milestone 截止日期（从 PLAN.md 交付物表格映射，可为空） |
-| `blockedBy` | milestone 的前置依赖 milestone ID 列表（可为空数组） |
+| 🟢 健康 | 80-100 |
+| 🟡 警告 | 50-79 |
+| 🔴 危险 | 0-49 |
 
-### Session 恢复
+---
 
-下次开启目标追踪前：
-1. 先检查 `.target-trigger` 是否存在
-2. 如存在 → 从 PLAN.md 解析并恢复（以评审通过状态为准）
-3. 如不存在 → 从 `.target-state.json` 恢复（向后兼容手动设定目标的场景）
+## 与其他 Skill 的关系
 
-### 关闭追踪
+### 与 task-split-skill 的关系（主要输入来源）
 
-用户主动关闭追踪时：
-1. 删除 `.target-trigger`（如果存在）
-2. 可选择保留或删除 `.target-state.json`
+```
+task-split-skill 拆解完成
+    ↓
+输出 milestone + subTask
+    ↓
+target-skill 接收
+    ↓
+写入 .target-state.json
+    ↓
+开始追踪
+```
+
+### 与 plan-review-skill 的关系
+
+```
+plan-review-skill 批准时写 .target-trigger
+    ↓
+target-skill 读取 .target-trigger
+    ↓
+发现无 milestone + subTask
+    ↓
+提示用户「请先用 task-split-skill 拆解」
+```
+
+### 与 PLAN skill 的关系
+
+```
+PLAN skill 生成 docs/PLAN.md
+    ↓
+plan-review-skill 评审
+    ↓
+task-split-skill 拆解
+    ↓
+target-skill 追踪
+```
+
+---
+
+## 版本字段
+
+| 文件 | 版本字段 | 位置 |
+|------|---------|------|
+| `.target-state.json` | `schemaVersion` | JSON 顶层 |
+
+---
+
+## 安装
+
+```bash
+git clone https://github.com/relunctance/target-skill.git ~/repos/target-skill
+```
