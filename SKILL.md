@@ -31,7 +31,7 @@ category: productivity
 author: relunctance
 created: 2026-05-15
 updated: 2026-05-17
-version: "2.0.0"
+version: "2.1.0"
 platforms: all
 depends_on:
   - task-split-skill
@@ -96,16 +96,16 @@ tags:
 
 ## 三种启动方式
 
-### 方式 1：从 task-split-skill 接管（推荐）
+### 方式 1：从 .task-split.json 接管（推荐）
 
 ```
-task-split-skill 拆解完成
+task-split-skill 拆解完成，写入 .task-split.json
     ↓
 用户说「开始执行」/「追踪目标」
     ↓
-target-skill 接收 milestone + subTask 结构
+target-skill 读取 .task-split.json
     ↓
-写入 .target-state.json
+转换为 .target-state.json
     ↓
 开始追踪
 ```
@@ -119,8 +119,8 @@ plan-review-skill 批准后写 .target-trigger
     ↓
 target-skill 检测到 .target-trigger
     ↓
-检查是否有 milestone + subTask
-    ├── 有 → 开始追踪
+检查是否有 .task-split.json
+    ├── 有 → 读取并开始追踪
     └── 无 → 提示用户「请先用 task-split-skill 拆解」
 ```
 
@@ -138,7 +138,34 @@ target-skill 检测到 .target-trigger
 
 ---
 
-## .target-state.json 格式
+### .task-split.json 格式（task-split-skill 输出）
+
+```json
+{
+  "version": "1.0",
+  "goal": "{项目目标}",
+  "source": "PLAN.md",
+  "createdAt": "YYYY-MM-DDTHH:mm:ss+08:00",
+  "milestones": [
+    {
+      "id": "M1",
+      "title": "{标题}",
+      "status": "pending",
+      "subTasks": [
+        {
+          "id": "M1-1",
+          "title": "{任务}",
+          "status": "pending",
+          "priority": "P0",
+          "acceptanceCriteria": "{验收标准}"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### .target-state.json 格式（target-skill 使用）
 
 ```json
 {
@@ -159,31 +186,28 @@ target-skill 检测到 .target-trigger
           "title": "子任务标题",
           "status": "done",
           "completedAt": "YYYY-MM-DDTHH:mm:ss+08:00"
-        },
-        {
-          "id": "M1-2",
-          "title": "子任务标题",
-          "status": "pending"
         }
       ]
-    },
-    {
-      "id": "M2",
-      "title": "里程碑2标题",
-      "status": "pending",
-      "completedAt": null,
-      "subTasks": []
     }
   ],
-  "changeLog": [
-    {
-      "time": "YYYY-MM-DDTHH:mm:ss+08:00",
-      "action": "接管 milestone + subTask",
-      "detail": "来源: task-split-skill"
-    }
-  ]
+  "changeLog": []
 }
 ```
+
+### .task-split.json → .target-state.json 转换规则
+
+| .task-split.json | .target-state.json |
+|-----------------|-------------------|
+| `goal` | `goal` |
+| `source: "PLAN.md"` | `source: "task-split"` |
+| `milestones[].id` | `milestones[].id` |
+| `milestones[].title` | `milestones[].title` |
+| `milestones[].status` | `milestones[].status`（默认 `pending`） |
+| `subTasks[].id` | `subTasks[].id` |
+| `subTasks[].title` | `subTasks[].title` |
+| `subTasks[].status` | `subTasks[].status`（默认 `pending`） |
+| `subTasks[].priority` | （不转换，优先级在追踪时使用） |
+| `subTasks[].acceptanceCriteria` | （不转换，验收标准在追踪时使用） |
 
 ### 状态字段说明
 
