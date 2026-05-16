@@ -1,4 +1,8 @@
 # target-skill
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)]()
+[![version](https://img.shields.io/badge/version-1.0.0-green.svg)]()
+[![category](https://img.shields.io/badge/category-productivity-blue.svg)]()
+[![platforms](https://img.shields.io/badge/platforms-hermes-blue.svg)]()
 
 > 目标追踪 + 抗偏移 — 设定目标后持续对齐，AI跑偏时主动纠正，歧义时让用户拍板
 
