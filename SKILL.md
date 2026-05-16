@@ -619,9 +619,14 @@ python3 ~/repos/target-skill/scripts/target-state.py get
 
 ### 读取 PLAN.md 的 SOP
 
+当需要从 PLAN.md 解析 milestone 时：
+
 1. 在 PLAN.md 中找到「里程碑」表格（`# 里程碑` 章节下的表格）
-2. 提取每行第三列作为验收标准
-3. 同样的方式处理「交付物」表格
+2. 提取每行：ID、标题、验收标准
+3. 在「交付物」表格中找到关联该 milestone 的截止日期 → 填入 `dueDate`
+4. 在「风险预判」或「需求约束」章节中判断里程碑间的前置依赖 → 填入 `blockedBy`（如 M2 依赖 M1，则 M2 的 `blockedBy: ["M1"]`）
+
+**注意**：LLM 直接解析 markdown 表格，不需要额外脚本。
 
 ### 进度报告 SOP
 
@@ -638,11 +643,11 @@ python3 ~/repos/target-skill/scripts/target-state.py get
 
 ### Milestone 状态
 
-| Milestone | 状态 | 进度 |
-|-----------|------|------|
-| {M1} | ✅ 完成 | 100% |
-| {M2} | 🔵 进行中 | 60% |
-| {M3} | ⬜ 待开始 | 0% |
+| Milestone | 状态 | 进度 | 截止日期 | 依赖 |
+|-----------|------|------|---------|------|
+| {M1} | ✅ 完成 | 100% | 2026-05-20 | — |
+| {M2} | 🔵 进行中 | 60% | 2026-05-25 | 等待 M1 |
+| {M3} | ⬜ 待开始 | 0% | — | 等待 M2 |
 
 ### 当前任务
 
@@ -675,6 +680,8 @@ python3 ~/repos/target-skill/scripts/target-state.py get
 | `blocker` | 阻塞原因描述 |
 | `deliverables` | 交付物列表 |
 | `blockers` | 阻塞问题列表 |
+| `dueDate` | milestone 截止日期（从 PLAN.md 交付物表格映射，可为空） |
+| `blockedBy` | milestone 的前置依赖 milestone ID 列表（可为空数组） |
 
 ### Session 恢复
 
