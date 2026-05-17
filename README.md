@@ -1,7 +1,7 @@
 # target-skill
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)]()
-[![version](https://img.shields.io/badge/version-3.0.0-green.svg)]()
+[![version](https://img.shields.io/badge/version-3.1.0-green.svg)]()
 [![category](https://img.shields.io/badge/category-productivity-blue.svg)]()
 [![platforms](https://img.shields.io/badge/platforms-hermes-blue.svg)]()
 
@@ -18,17 +18,19 @@
 | **歧义确认** | 不自己猜，让用户选择方向 |
 | **目标变化日志** | 每次调整记录原因，可回溯 |
 
-### 强化功能（v3 新增）
+### 强化功能（v3+）
 
 | 功能 | 说明 |
 |------|------|
-| **验收标准门槛** | subTask 无可测试验收标准时，拒绝执行 |
+| **验收标准门槛** | subTask 无 L3 验收标准时，拒绝执行 |
 | **检查点机制** | 每个 subTask 完成后汇报，用户确认后才能继续 |
 | **进度可见性** | 随时可查进度状态 |
 | **抗偏移检查** | 每 3 个 subTask 做一次目标对齐检查 |
 | **阻塞上报机制** | 遇到问题 AI 主动上报，不自行决定 |
 | **中间交付物** | 每个 subTask 必须有可查看的交付物 |
 | **可验证命令** | 验收标准必须包含可运行的验证命令 |
+| **Rollback** | subTask 失败后可回滚到上一个可用状态 |
+| **质量门禁** | milestone 切换时自动检查 lint + test |
 
 ## 触发条件
 
@@ -38,6 +40,7 @@
 | `设定目标` | 手动设定目标 |
 | `当前进度` / `当前目标` | 查看进度 |
 | `目标跑偏` / `AI跑偏` | 触发抗偏移检查 |
+| `回滚` / `rollback` | 回滚到上一个可用状态 |
 
 ## 工作流程
 
@@ -56,6 +59,8 @@ target-skill 读取 .task-split.json
     ↓
 【抗偏移】每 3 个 subTask → 目标对齐检查
     ↓
+【质量门禁】milestone 最后一个 subTask 完成 → lint + test 检查
+    ↓
 所有 subTask 完成 → 目标达成
 ```
 
@@ -67,33 +72,32 @@ target-skill 读取 .task-split.json
 | L2 模糊 | 有条件但无法自动判断 | 🔴 拒绝，要求补充 |
 | L1 无 | 无任何验收条件 | 🔴 拒绝，要求补充 |
 
-## 检查点机制（v3）
+## Rollback（v3.1）
 
-每个 subTask 完成后必须：
+subTask 失败后可回滚：
 
-1. 汇报：产出物、验收标准、执行结果
-2. 等待用户确认
-3. 确认后才能进入下一个 subTask
+```
+subTask N 执行失败
+    ↓
+【确认回滚范围】
+列出 subTask N 的所有变更
+    ↓
+【执行回滚】
+新增文件 → rm
+修改文件 → git checkout HEAD --
+    ↓
+【继续或终止】
+用户选择：重试 / 跳过 / 终止
+```
 
-## 抗偏移检查（v3）
+## 质量门禁（v3.1）
 
-| 时机 | 行为 |
-|------|------|
-| 每 3 个 subTask | 目标对齐检查 |
-| 偏离度低 | 继续执行 |
-| 偏离度中 | 输出警告，继续执行 |
-| 偏离度高 | 暂停，询问用户 |
+milestone 切换时自动检查：
 
-## 阻塞上报（v3）
-
-AI 遇到以下情况必须上报，不自行决定：
-
-| 类型 | 例子 |
-|------|------|
-| 决策阻塞 | 需要用户拍板 |
-| 依赖阻塞 | 外部依赖未就绪 |
-| 技术阻塞 | error/exception 无法解决 |
-| 模糊阻塞 | 不确定是否正确 |
+| 指标 | 命令 | 阈值 |
+|------|------|------|
+| Lint | `ruff check src/` | 0 errors |
+| Test | `pytest tests/ -v` | 0 failures |
 
 ## 安装
 

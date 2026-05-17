@@ -31,7 +31,7 @@ category: productivity
 author: relunctance
 created: 2026-05-15
 updated: 2026-05-17
-version: "3.0.0"
+version: "3.1.0"
 platforms: all
 depends_on:
   - task-split-skill  # https://github.com/relunctance/task-split-skill
@@ -578,6 +578,143 @@ subTask 完成后
 | 编写测试 | `pytest tests/` 能运行 | 强 | ✅ 执行 |
 | 代码规范 | 有规范文档 | 弱 | ⚠️ 补充命令 |
 | 完善功能 | 无 | 无 | 🔴 拒绝 |
+
+---
+
+## Rollback SOP（v3 新增）
+
+**触发条件**：subTask N 执行失败或用户要求回滚。
+
+### Rollback 判断
+
+```
+subTask N 执行失败
+    ↓
+【检查是否可以回滚】
+├── 有可回滚的变更（文件/配置）→ 执行回滚
+└── 无可回滚的变更（纯逻辑失败）→ 标记 blocked，上报
+```
+
+### 回滚类型与方式
+
+| 类型 | 场景 | 回滚方式 |
+|------|------|---------|
+| 文件删除 | subTask 新增了文件 | `rm {file}` 或 `git checkout HEAD -- {file}` |
+| 文件修改 | subTask 修改了现有文件 | `git checkout HEAD -- {file}` |
+| 配置变更 | subTask 修改了配置 | 恢复备份或手动改回 |
+| 依赖安装 | `pip install` 等 | `pip uninstall {package}` |
+
+### Rollback 执行流程
+
+```
+【确认回滚范围】
+列出 subTask N 的所有变更
+    ↓
+【执行回滚】
+对于每个变更：
+├── 新增文件 → rm
+├── 修改文件 → git checkout HEAD --
+└── 配置变更 → 手动恢复
+    ↓
+【更新状态】
+.subTask N 状态 → pending
+.target-state.json lastUpdated → 当前时间
+.changeLog → 记录回滚
+    ↓
+【继续或终止】
+用户决定：
+1. 重试 subTask N
+2. 跳过 subTask N
+3. 终止 milestone
+```
+
+### Rollback 汇报模板
+
+```markdown
+## 🔄 Rollback 汇报
+
+**subTask**：{subTask ID}
+**回滚原因**：{失败原因 / 用户要求}
+
+**回滚变更**：
+- `{file}`：新增文件 → 已删除
+- `{file}`：修改文件 → 已从 git 恢复
+
+**当前状态**：
+- {subTask ID}：pending
+- milestone {M}：active
+
+**下一步**：请选择：
+1. 重试 {subTask ID}
+2. 跳过 {subTask ID}
+3. 终止 milestone
+```
+
+---
+
+## 质量门禁 SOP（v3 新增）
+
+**触发条件**：milestone N 的最后一个 subTask 完成。
+
+### 质量门禁检查
+
+```
+milestone N 最后一个 subTask 完成
+    ↓
+【质量门禁检查】
+├── ruff lint src/ → 0 errors
+├── pytest tests/ → 0 failures
+└── （其他质量指标，如有）
+    ↓
+【判断】
+├── 全部通过 → ✅ 进入下一 milestone
+└── 有失败 → 🔴 阻塞
+    「质量门禁未通过。请修复后再继续。」
+```
+
+### 质量门禁指标
+
+| 指标 | 命令 | 阈值 |
+|------|------|------|
+| Lint | `ruff check src/` | 0 errors |
+| Test | `pytest tests/ -v` | 0 failures |
+| Type check（可选） | `mypy src/` | 0 errors |
+
+### 质量门禁失败汇报模板
+
+```markdown
+## 🔴 质量门禁未通过
+
+**milestone**：{M}
+**检查时间**：{timestamp}
+
+**失败项**：
+| 指标 | 命令 | 实际结果 | 期望 |
+|------|------|---------|------|
+| Lint | `ruff check src/` | 5 errors | 0 errors |
+| Test | `pytest tests/ -v` | 2 failed | 0 failures |
+
+**阻塞**：milestone {M} 状态 → blocked
+
+**下一步**：请修复上述问题，然后说「重新检查质量门禁」。
+```
+
+### 质量门禁通过汇报模板
+
+```markdown
+## ✅ 质量门禁通过
+
+**milestone**：{M}
+**检查时间**：{timestamp}
+
+**检查项**：
+| 指标 | 结果 |
+|------|------|
+| ruff lint | ✅ 0 errors |
+| pytest | ✅ 0 failures |
+
+**下一步**：milestone {M} 完成，进入 milestone {M+1}。
+```
 
 ---
 
