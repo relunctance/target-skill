@@ -34,7 +34,7 @@ updated: 2026-05-17
 version: "2.1.0"
 platforms: all
 depends_on:
-  - task-split-skill
+  - task-split-skill  # https://github.com/relunctance/task-split-skill
 tags:
   - goal
   - tracking
@@ -89,8 +89,8 @@ tags:
 
 **不触发：**
 - `制定计划` → PLAN skill
-- `拆解任务` → task-split-skill
-- `评审计划` → plan-review-skill
+- `拆解任务` → [task-split-skill](https://github.com/relunctance/task-split-skill)
+- `评审计划` → [plan-review-skill](https://github.com/relunctance/plan-review-skill)
 
 ---
 
@@ -99,7 +99,7 @@ tags:
 ### 方式 1：从 .task-split.json 接管（推荐）
 
 ```
-task-split-skill 拆解完成，写入 .task-split.json
+[task-split-skill](https://github.com/relunctance/task-split-skill) 拆解完成，写入 .task-split.json
     ↓
 用户说「开始执行」/「追踪目标」
     ↓
@@ -113,7 +113,7 @@ target-skill 读取 .task-split.json
 ### 方式 2：从 .target-trigger 接管
 
 ```
-plan-review-skill 批准后写 .target-trigger
+[plan-review-skill](https://github.com/relunctance/plan-review-skill) 批准后写 .target-trigger
     ↓
 用户说「追踪目标」
     ↓
@@ -121,7 +121,7 @@ target-skill 检测到 .target-trigger
     ↓
 检查是否有 .task-split.json
     ├── 有 → 读取并开始追踪
-    └── 无 → 提示用户「请先用 task-split-skill 拆解」
+    └── 无 → 提示用户「请先用 [task-split-skill](https://github.com/relunctance/task-split-skill) 拆解」
 ```
 
 ### 方式 3：手动设定目标
@@ -289,17 +289,17 @@ target-skill 读取 .target-trigger
     ↓
 发现无 milestone + subTask
     ↓
-提示用户「请先用 task-split-skill 拆解」
+提示用户「请先用 [task-split-skill](https://github.com/relunctance/task-split-skill) 拆解」
 ```
 
 ### 与 PLAN skill 的关系
 
 ```
-PLAN skill 生成 docs/PLAN.md
+[PLAN skill](https://github.com/relunctance/plan-skill) 生成 docs/PLAN.md
     ↓
-plan-review-skill 评审
+[plan-review-skill](https://github.com/relunctance/plan-review-skill) 评审
     ↓
-task-split-skill 拆解
+[task-split-skill](https://github.com/relunctance/task-split-skill) 拆解
     ↓
 target-skill 追踪
 ```
