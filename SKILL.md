@@ -31,7 +31,7 @@ category: productivity
 author: relunctance
 created: 2026-05-15
 updated: 2026-05-17
-version: "3.1.0"
+version: "3.2.0"
 platforms: all
 depends_on:
   - task-split-skill  # https://github.com/relunctance/task-split-skill
@@ -90,6 +90,96 @@ tags:
 **不触发：**
 - `制定计划` → PLAN skill
 - `拆解任务` → [task-split-skill](https://github.com/relunctance/task-split-skill)
+
+---
+
+## 概览 SOP（v3.2 新增）
+
+### 触发时机
+
+用户问「进度」「当前状态」「还剩多少」「几步能完成」「概览」时触发。
+
+### 概览模板
+
+```markdown
+## 🎯 目标概览
+
+**目标**：{goal}
+**当前里程碑**：{M} / 共 {N} 个
+**总进度**：{done}/{total} subTasks 完成（{percent}%）
+
+### 里程碑进度
+
+| 里程碑 | 状态 | 完成 |
+|--------|------|------|
+| M1 | ✅ done | 5/5 |
+| M2 | 🔄 active | 2/4 |
+| M3 | ⏳ pending | 0/3 |
+
+### 当前里程碑：M2
+
+| subTask | 任务 | 状态 |
+|---------|------|------|
+| M2-1 | 实现 X | ✅ done |
+| M2-2 | 实现 Y | 🔄 in_progress |
+| M2-3 | 实现 Z | ⏳ pending |
+
+### 下一步
+
+**M2-3**：实现 Z（预计 {N} 步后里程碑 M2 完成）
+```
+
+### 执行步骤
+
+```
+用户问「进度」等
+    ↓
+【读取 .target-state.json】
+读取 goal、milestones、subTasks、状态
+    ↓
+【计算进度】
+- 总进度：done/total subTasks
+- 当前里程碑：phase=active 的那个
+- 当前里程碑进度：done/total subTasks
+- 剩余步数：当前 milestone pending 的 subTasks 数
+    ↓
+【生成概览】
+按模板格式化为 Markdown
+    ↓
+【输出】
+返回概览表格 + 下一步提示
+```
+
+### 示例输出
+
+```markdown
+## 🎯 目标概览
+
+**目标**：核心框架可运行（expert-teams M1）
+**当前里程碑**：M1 / 共 1 个
+**总进度**：3/5 subTasks 完成（60%）
+
+### 里程碑进度
+
+| 里程碑 | 状态 | 完成 |
+|--------|------|------|
+| M1 | 🔄 active | 3/5 |
+
+### 当前里程碑：M1
+
+| subTask | 任务 | 状态 |
+|---------|------|------|
+| M1-1 | 实现 team create 命令 | ✅ done |
+| M1-2 | 实现 flow advance 命令 | ✅ done |
+| M1-3 | 实现 team status 命令 | ✅ done |
+| M1-4 | 配置 demo3.toml | ⏳ pending |
+| M1-5 | 端到端测试 | ⏳ pending |
+
+### 下一步
+
+**M1-4**：配置 demo3.toml（预计 2 步后里程碑 M1 完成）
+```
+
 - `评审计划` → [plan-review-skill](https://github.com/relunctance/plan-review-skill)
 
 ---

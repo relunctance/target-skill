@@ -1,7 +1,7 @@
 # target-skill
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)]()
-[![version](https://img.shields.io/badge/version-3.1.0-green.svg)]()
+[![version](https://img.shields.io/badge/version-3.2.0-green.svg)]()
 [![category](https://img.shields.io/badge/category-productivity-blue.svg)]()
 [![platforms](https://img.shields.io/badge/platforms-hermes-blue.svg)]()
 
@@ -41,6 +41,7 @@
 | `当前进度` / `当前目标` | 查看进度 |
 | `目标跑偏` / `AI跑偏` | 触发抗偏移检查 |
 | `回滚` / `rollback` | 回滚到上一个可用状态 |
+| `概览` / `还剩多少` | 查看完整进度概览 |
 
 ## 工作流程
 
@@ -98,6 +99,31 @@ milestone 切换时自动检查：
 |------|------|------|
 | Lint | `ruff check src/` | 0 errors |
 | Test | `pytest tests/ -v` | 0 failures |
+
+## 概览（v3.2）
+
+用户问「进度」「当前状态」「还剩多少」「概览」时触发：
+
+```markdown
+## 🎯 目标概览
+
+**目标**：核心框架可运行（expert-teams M1）
+**总进度**：3/5 subTasks 完成（60%）
+
+### 当前里程碑：M1
+
+| subTask | 任务 | 状态 |
+|---------|------|------|
+| M1-1 | 实现 team create 命令 | ✅ done |
+| M1-2 | 实现 flow advance 命令 | ✅ done |
+| M1-3 | 实现 team status 命令 | ✅ done |
+| M1-4 | 配置 demo3.toml | ⏳ pending |
+| M1-5 | 端到端测试 | ⏳ pending |
+
+### 下一步
+
+**M1-4**：配置 demo3.toml（预计 2 步后里程碑 M1 完成）
+```
 
 ## 安装
 
