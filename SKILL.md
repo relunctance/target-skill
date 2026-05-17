@@ -308,6 +308,8 @@ target-skill 追踪
 
 ## 版本字段
 
+详细格式定义见 `docs/schemas.md`。
+
 | 文件 | 版本字段 | 位置 |
 |------|---------|------|
 | `.target-state.json` | `schemaVersion` | JSON 顶层 |
